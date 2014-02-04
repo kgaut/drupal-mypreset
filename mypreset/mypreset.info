@@ -1,4 +1,4 @@
 name = My Preset
 description = Hooks, preprocess & stuff
-package = Net Design
+package = Misc
 core = 7.x

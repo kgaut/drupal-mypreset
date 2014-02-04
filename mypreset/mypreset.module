@@ -1,0 +1,12 @@
+<?php
+
+
+/**
+ * implement hook_preprocess_node
+ * Ajoute un hook suggestion du type : node--CONTENT_TYPE--VIEW_MODE.tpl.php
+ * @param $variables
+ * @param $hook
+ */
+function mypreset_preprocess_node(&$variables,$hook) {
+  $variables['theme_hook_suggestions'][] = 'node__'.$variables['type'].'__' . $variables['view_mode'];
+}

@@ -3,10 +3,23 @@
 
 /**
  * implement hook_preprocess_node
- * Ajoute un hook suggestion du type : node--CONTENT_TYPE--VIEW_MODE.tpl.php
+ * Add a template suggestion for node with this pattern : node--CONTENT_TYPE--VIEW_MODE.tpl.php
  * @param $variables
  * @param $hook
  */
 function mypreset_preprocess_node(&$variables,$hook) {
   $variables['theme_hook_suggestions'][] = 'node__'.$variables['type'].'__' . $variables['view_mode'];
+}
+
+
+/**
+ * implement hook_preprocess_field
+ * When there is no text format selected, there's a drupal bug witch prevent new line
+ * @param $variables
+ * @param $hook
+ */
+function mypreset_preprocess_field(&$vars, $hook) {
+  if ($vars['element']['#field_type'] == 'text_long' && $vars['element']['#items'][0]['format'] == null) {
+    $vars['items'][0]['#markup'] = nl2br($vars['items'][0]['#markup']);
+  }
 }

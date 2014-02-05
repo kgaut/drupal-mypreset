@@ -4,12 +4,12 @@
 }
 
 .atila .atila-wrapper {
-  width: 100%; 
-  clear: both;
+    width: 100%;
+    clear: both;
+    margin-bottom: 1em;
 }
-
-.atila .panel-col-top .inside {
-  margin-bottom: 1em;
+.atila .atila-wrapper.last {
+    margin-bottom: 0;
 }
 
 .atila .panel-col-first {
@@ -18,16 +18,20 @@
 }
 .atila .panel-col-first.double {
     float: left;
-    width: 66%;
+    width: 67%;
 }
 
-.atila .panel-col-first .inside { 
+.atila .panel-col-first .inside {
   margin: 0 .5em 1em 0;
 }
 
 .atila .panel-col { 
   float: left; 
   width: 33%; 
+}
+
+.atila .panel-col.middle {
+    width: 34%;
 }
 
 .atila .panel-col .inside { 

@@ -39,7 +39,7 @@
       <div class="inside"><?php print $content['left']; ?></div>
     </div>
 
-    <div class="panel-panel panel-col">
+    <div class="panel-panel panel-col middle">
       <div class="inside"><?php print $content['middle']; ?></div>
     </div>
 
@@ -49,7 +49,7 @@
   </div>
 
   <?php if ($content['bottom']): ?>
-  <div class="atila-wrapper">
+  <div class="atila-wrapper last">
     <div class="panel-panel panel-col-bottom full-width">
       <div class="inside"><?php print $content['bottom']; ?></div>
     </div>

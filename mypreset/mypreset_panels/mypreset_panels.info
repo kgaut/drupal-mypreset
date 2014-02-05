@@ -1,0 +1,6 @@
+name = My Preset Panels
+description = Provide extra panels and skeleton to add more
+dependencies[] = panels
+package = Misc
+core = 7.x
+files[] = tests/mypreset_panels.test

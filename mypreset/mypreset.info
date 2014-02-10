@@ -2,3 +2,5 @@ name = My Preset
 description = Hooks, preprocess & stuff
 package = Misc
 core = 7.x
+
+files[] = lib/MyObject.inc

@@ -160,7 +160,6 @@ abstract class MyObject {
       $cond1 = $cond[0];
       $cond2 = $cond[1];
       $cond3 = isset($cond[2]) ? $cond[2] : NULL;
-      //$query->condition($cond1,$cond2,$cond3);
       $query->condition($cond1, $cond2, $cond3);
     }
     $result = $query->execute();

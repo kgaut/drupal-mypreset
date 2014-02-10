@@ -14,7 +14,7 @@ function mypreset_preprocess_node(&$variables,$hook) {
 
 /**
  * implement hook_preprocess_field
- * When there is no text format selected, there's a drupal bug witch prevent new line
+ * when asigning no text format to a textarea, there's a drupal bug witch prevent line break so in this hook we add a nl2br
  * @param $variables
  * @param $hook
  */

@@ -1,0 +1,124 @@
+<?php
+
+
+/**
+ * Fix up duplicated field collection IDs.
+ */
+function mypreset_field_collection_i18n_install() {
+  $already_done = array();
+  $changed_deltas = array();
+
+  foreach (field_read_fields(array('type' => 'field_collection')) as $field_name => $field) {
+    drupal_set_message("Now checking $field_name...");
+    $changed_deltas[$field_name] = array();
+
+    $already_done[$field_name] = array();
+
+// Get the field collection IDs that appear in more than one language
+
+    /* select f.field_collection_name_value AS field_collection_name_value, f.entity_id AS entity_id,
+    COUNT(f.entity_id) AS c
+    FROM
+    field_data_field_collection_name f
+    GROUP BY f.field_collection_name_value, delta
+    HAVING COUNT(entity_id) > 1 ORDER BY count(entity_id) desc; */
+
+    $query1 = db_select("field_data_{$field_name}", 'f')
+      ->fields('f', array("{$field_name}_value"))
+      ->condition('f.entity_type', 'node')
+      ->groupBy("f.{$field_name}_value")
+      ->groupBy('delta');
+
+    $count_alias = $query1->addExpression("COUNT(f.entity_id)", 'c');
+
+    $query1 = $query1->havingCondition($count_alias, "1", '>');
+
+    $the_results = $query1->execute();
+
+    foreach ($the_results as $data) {
+// Get the associated entity IDs
+// "select distinct entity_id from field_data_:field_name JOIN node on node.nid = entity_id WHERE :field_name = :field_name_value AND node.language != 'en'", array(':field_name' => $field_name, ':field_name_value' => $data->$field_name_value)
+      $query2 = db_select("field_data_{$field_name}", "f")
+        ->fields('f', array('entity_id'))
+        ->distinct()
+        ->condition("f.{$field_name}_value", $data->{"{$field_name}_value"});
+// ->condition("n.language", "en", "!="); // Removed - now it'll over-correct, but that's OK. It was under-correcting before
+
+      $query2->join("node", "n", "n.nid = f.entity_id");
+
+      $entity_ids = $query2->execute();
+
+      foreach ($entity_ids as $entity_id) {
+        if (!isset($already_done[$field_name][$entity_id->entity_id])) {
+          drupal_set_message("Re-initializing field collection on node {$entity_id->entity_id}.");
+          $vid_query = db_query("select vid from {node} where nid = :entity_id ORDER BY vid ASC", array(":entity_id" => $entity_id->entity_id));
+
+          foreach($vid_query as $vid_data) {
+            $vid = $vid_data->vid;
+            $changed_deltas[$field_name][$vid] = array();
+            $loaded_revision = node_load(NULL, $vid, TRUE);
+
+// Get the field collection item IDs
+            $vid_field_collections = field_get_items('node', $loaded_revision, $field_name);
+
+            foreach ($vid_field_collections as $delta => $vid_field_collection) {
+// Now load the field_collection_item
+              $vid_fc = field_collection_item_revision_load($vid_field_collection['revision_id']);
+
+              if (!$vid_fc) {
+// OK, try loading it by item ID then.
+                $vid_fc = field_collection_item_load($vid_field_collection['value']);
+
+                if (!$vid_fc) {
+                  throw new Exception("Field: {$field_name} -
+Node: {$entity_id->entity_id} -
+Loading the field collection item with item ID {$vid_field_collection['value']} and revision ID {$vid_field_collection['revision_id']} failed for some reason! We couldn't load it by field collection ID either. -
+Investigate why before continuing.");
+                }
+
+                drupal_set_message("Loading the database revision for {$field_name} (item ID: {$vid_field_collection['value']} on node {$entity_id->entity_id}/{$vid} failed, but we were able to load it by item ID. The revision ID that failed was {$vid_field_collection['revision_id']}, and the one we actually loaded was {$vid_fc->revision_id}.", 'warning');
+              }
+
+// OK, we have it loaded now. Set the item ID to an empty string then re-save it. It should update itself with the host automatically.
+              $vid_fc->item_id = '';
+              $vid_fc->save(TRUE);
+              drupal_set_message("Saved a new field collection for node {$entity_id->entity_id}, revision {$loaded_revision->vid}. It says its item ID is {$vid_fc->item_id} and its revision ID is {$vid_fc->revision_id}. The old item ID was {$vid_field_collection['value']}, and the old revision ID was {$vid_field_collection['revision_id']}.");
+              $changed_deltas[$field_name][$vid][$delta] = $vid_fc;
+            }
+          }
+
+          $already_done[$field_name][$entity_id->entity_id] = $entity_id->entity_id;
+        }
+      }
+    }
+  }
+
+// Save everything. We couldn't do it earlier because it would prematurely delete the field collections and mess up our fixes.
+  if (count($changed_deltas) > 0) {
+    foreach ($changed_deltas as $field_name => $vid_array) {
+      drupal_set_message("Saving changes for {$field_name}...");
+
+      foreach($vid_array as $node_vid => $delta_array) {
+// Avoid memory problems, hopefully?
+        $revision_to_save = node_load(NULL, $node_vid, TRUE);
+
+// Update the revision with the IDs of the new field collection item
+        foreach ($delta_array as $new_delta => $new_fc) {
+// drupal_set_message("Applying new field collection {$new_fc->item_id} to revision {$revision_to_save->vid}");
+          $field_info = field_info_field($field_name);
+          $lang = $field_info['translatable'] ? entity_language('node', $revision_to_save) : LANGUAGE_NONE;
+          $revision_to_save->{$field_name}[$lang][$new_delta]['value'] = $new_fc->item_id;
+          $revision_to_save->{$field_name}[$lang][$new_delta]['revision_id'] = $new_fc->revision_id;
+        }
+
+        node_save($revision_to_save);
+        drupal_set_message("Saved node revision {$revision_to_save->vid} with new field collection values.");
+      }
+    }
+  }
+
+// Remove any orphaned records.
+  field_collection_update_7002();
+
+  return "Fix up duplicated field collection IDs.";
+}

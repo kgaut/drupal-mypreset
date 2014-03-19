@@ -1,0 +1,85 @@
+<?php
+
+/**
+ * @file mypreset_field_collection_i18n.module
+ * TODO: Enter file description here.
+ */
+
+/**
+ * Implements hook_field_attach_prepare_translation_alter().
+ * @see : http://www.lapetitepausetechnique.net/2012/09/field_collection-et-i18n/
+ */
+function mypreset_field_collection_i18n_field_attach_prepare_translation_alter(&$entity, $context) {
+  // Champs à synchroniser
+  if (module_exists('i18n_sync')) {
+    $sync_fields = i18n_sync_node_fields($entity->type);
+  } else {
+    $sync_fields = array();
+  }
+
+  // Champs appartenant au bundle
+  $entityFields = field_info_instances('node', $entity->type);
+  // Pour chaque champ du bundle
+  foreach ($entityFields as $entityField => $infos) {
+
+    // Params globaux du champs
+    $fieldInfo = field_info_field($entityField);
+
+    // On ne copie pas les field_collections à ne pas synchroniser
+    // car sinon, l'ITEM_ID de la FC se retrouve être le même
+    // dans la version source et la version étrangère cible
+    if ($fieldInfo['type'] == 'field_collection' && !in_array($entityField, $sync_fields)) {
+//	unset($entity->{$entityField});
+//    }
+//    // above is replacement for test
+//    elseif (false) {
+
+      // au lieu de ça, on crée une nouvelle field_collection
+      // qui est la copie de la source
+      // pour bien dé-solidariser la FC de la cible de celle de la source
+
+      // Liste des items de la collection source
+      $fcList = $context['source_entity']->$entityField;
+
+      // Quels sont les champs de ce field_collection ?
+      $fcFields = field_info_instances('field_collection_item', $entityField);
+      $fcFieldNames = array();
+      foreach ($fcFields as $fcField) {
+        $fcFieldNames[] = $fcField['field_name'];
+      }
+
+      // Pour chaque items, on copie les valeurs des champs
+      // dans un nouvel FC item, qu'on rattache à la nouvelle entité cible
+      $i = 0;
+      if (isset($fcList[LANGUAGE_NONE])) {
+        foreach ($fcList[LANGUAGE_NONE] as $oneFieldCollItem) {
+          $fci = field_collection_item_load($oneFieldCollItem['value']);
+
+          // Création d'une nouvelle entité field_collection vierge
+          $field_collection = entity_create('field_collection_item', array(
+            'field_name' => $entityField
+          ));
+          $field_collection->language = LANGUAGE_NONE;
+          $field_collection->setHostEntity('node', $entity, $entity->language, FALSE);
+
+          // On attache les différents champs à la collection
+          // en prenant les valeurs de la source
+          foreach ($fcFieldNames as $fcFieldName) {
+            // copie du champ de la collection source vers la collection cible
+            $field_collection->$fcFieldName = $fci->$fcFieldName;
+          }
+
+          // création en BDD
+          // La limite ici : on crée la FC même si l'utilisateur annule la création de la version étrangère...
+          $field_collection->save(TRUE);
+
+          // on attache la FC à l'entité cible, grâce à l'id de l'item nouvellement créé
+          $entity->{$entityField}[LANGUAGE_NONE][$i]['value'] = $field_collection->item_id;
+          $entity->{$entityField}[LANGUAGE_NONE][$i]['revision_id'] = $field_collection->item_id;
+
+          $i++;
+        }
+      }
+    }
+  }
+}

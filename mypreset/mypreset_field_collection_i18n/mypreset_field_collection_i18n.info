@@ -1,0 +1,7 @@
+name = Mypreset field collection i18n
+description = Patch pour que les field crées via field collection puissent être tranduisible (CF : www.lapetitepausetechnique.net/2012/09/field_collection-et-i18n/ & https://gist.github.com/wizonesolutions/5567549)
+dependencies[] = field_collection
+dependencies[] = i18n
+package = Misc
+core = 7.x
+files[] = tests/mypreset_field_collection_i18n.test

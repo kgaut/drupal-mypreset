@@ -1,0 +1,5 @@
+name = MyOobject
+description = Fournis et inclut la classe abstraite MyObject qui permet de gérer facilement et rapidement des tables à plat
+package = Misc
+core = 7.x
+files[] = lib/MyObject.inc

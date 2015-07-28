@@ -1,6 +1,0 @@
-name = Nodelog
-description = Exemple de gestion d'une table à plat avec drupal
-dependencies[] = mypreset_myobject
-core = 7.x
-
-files[] = lib/Nodelog.inc

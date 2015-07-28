@@ -1,5 +1,0 @@
-<?php
-
-function nodelog_node_update($node) {
-    dpm($node);
-}
